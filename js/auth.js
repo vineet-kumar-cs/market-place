@@ -211,11 +211,11 @@ function initLoginPage() {
     }
   });
 }
-
-const { data, error } = await supabaseClient.auth.signUp({
-  email,
-  password
-});
+ 
+// const { data, error } = await supabaseClient.auth.signUp({
+//   email,
+//   password
+// });
 
 // if (data.user) {
 //   await supabaseClient.from('profiles').insert([
@@ -226,3 +226,24 @@ const { data, error } = await supabaseClient.auth.signUp({
 //     }
 //   ]);
 // }
+
+
+
+// document.querySelector("form").addEventListener("submit", async (e) => {
+//   e.preventDefault(); // 🔥 ye line missing hogi
+
+//   const email = document.getElementById("email").value;
+//   const password = document.getElementById("password").value;
+
+//   const { data, error } = await supabase.auth.signInWithPassword({
+//     email,
+//     password,
+//   });
+
+//   if (error) {
+//     alert(error.message);
+//   } else {
+//     alert("Login successful 🚀");
+//     window.location.href = "home.html"; // ya dashboard
+//   }
+// });
