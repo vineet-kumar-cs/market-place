@@ -2,20 +2,31 @@
 // js/products.js — Product CRUD & Image Upload
 // ============================================================
 
+// const user = await supabase.auth.getUser();
+
+// await supabase.from("products").insert([
+//   {
+//     name: "Laptop",
+//     price: 40000,
+//     user_id: user.data.user.id, // 🔥 important
+//   },
+// ]);
+
 // ============================================================
 // FETCH ALL PRODUCTS (with seller profile joined)
 // ============================================================
 async function getAllProducts(searchTerm = '') {
   let query = supabaseClient
     .from('products')
-    .select(`
-      *,
-      profiles (
-        name,
-        email,
-        phone
-      )
-    `)
+    .select("*")
+    // .select(`
+    //   *,
+    //   profiles (
+    //     name,
+    //     email,
+    //     phone
+    //   )
+    // `)
     .order('created_at', { ascending: false });
 
   if (searchTerm) {
@@ -33,14 +44,15 @@ async function getAllProducts(searchTerm = '') {
 async function getProductById(productId) {
   const { data, error } = await supabaseClient
     .from('products')
-    .select(`
-      *,
-      profiles (
-        name,
-        email,
-        phone
-      )
-    `)
+    .select("*")
+    // .select(`
+    //   *,
+    //   profiles (
+    //     name,
+    //     email,
+    //     phone
+    //   )
+    // `)
     .eq('id', productId)
     .single();
 

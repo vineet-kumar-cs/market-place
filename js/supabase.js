@@ -17,6 +17,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================
 // UTILITY: Toast Notification System
+
 // ============================================================
 function showToast(message, type = 'default') {
   // Create container if not exists
