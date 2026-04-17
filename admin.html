@@ -279,7 +279,7 @@
 
         // Check if user has admin role in metadata
         const isAdmin = user.user_metadata?.is_admin === true ||
-                        user.email === 'admin@marketplace.com'; // Fallback: hardcoded admin email
+                        user.email === 'whitegriffin.respact.com'; // Fallback: hardcoded admin email
 
         if (!isAdmin) {
           await supabaseClient.auth.signOut();
