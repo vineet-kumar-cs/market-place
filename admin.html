@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — MarketPlace</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* Extra admin-specific styles */
+    .admin-login-card {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      padding: 44px 36px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .admin-login-card h2 {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1a1a2e;
+    }
+
+    .admin-login-card .sub { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .tag-admin { background: #fde8e7; color: var(--danger); }
+    .tag-user { background: #e8f4fd; color: #2980b9; }
+
+    .search-table-input {
+      padding: 9px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      outline: none;
+      width: 220px;
+      transition: border-color var(--transition);
+      font-family: var(--font-body);
+    }
+
+    .search-table-input:focus { border-color: var(--primary); }
+
+    .no-results {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
+    <div class="navbar-actions" id="nav-actions">
+      <span class="admin-badge">ADMIN</span>
+      <a href="index.html" class="btn btn-outline btn-sm">Back to Site</a>
+    </div>
+  </nav>
+
+  <!-- ============ ADMIN LOGIN OVERLAY ============ -->
+  <div class="admin-login-overlay" id="admin-login-overlay">
+    <div class="admin-login-card fade-in">
+      <div style="font-size:2.5rem;margin-bottom:16px;text-align:center;">🔐</div>
+      <h2 style="text-align:center;">Admin Login</h2>
+      <p class="sub" style="text-align:center;">Enter admin credentials to access the control panel</p>
+
+      <div id="admin-login-alert" class="alert hidden"></div>
+
+      <form id="admin-login-form">
+        <div class="form-group">
+          <label for="admin-email">Admin Email</label>
+          <input type="email" id="admin-email" class="form-control" placeholder="admin@marketplace.com" required>
+        </div>
+        <div class="form-group">
+          <label for="admin-password">Password</label>
+          <input type="password" id="admin-password" class="form-control" placeholder="Admin password" required>
+        </div>
+        <button type="submit" id="admin-login-btn" class="btn btn-dark btn-full btn-lg">
+          Access Admin Panel
+        </button>
+      </form>
+
+      <div style="text-align:center;margin-top:16px;">
+        <a href="index.html" style="color:var(--text-muted);font-size:0.88rem;">← Back to Site</a>
+      </div>
+
+      <div class="alert alert-info" style="margin-top:20px;font-size:0.82rem;">
+        <strong>Note:</strong> Admin access is granted via Supabase. Add <code>is_admin: true</code> to the user's metadata in Supabase Auth dashboard.
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN PANEL (shown after admin login) ============ -->
+  <div class="admin-page" id="admin-panel" style="display:none;">
+
+    <!-- Admin Header -->
+    <div class="admin-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <h1>Admin Control Panel</h1>
+          <span class="admin-badge">ADMIN</span>
+        </div>
+        <p>Manage all users, products, and platform data</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="refreshData()" class="btn btn-outline btn-sm">🔄 Refresh</button>
+        <button onclick="adminLogout()" class="btn btn-danger btn-sm">Logout</button>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="admin-stats" id="admin-stats">
+      <div class="stat-card">
+        <div class="stat-card-num" id="stat-users">—</div>
+        <div class="stat-card-label">Total Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-num" id="stat-products">—</div>
+        <div class="stat-card-label">Total Products</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-num" id="stat-today">—</div>
+        <div class="stat-card-label">Listed Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-num" id="stat-value">—</div>
+        <div class="stat-card-label">Total Listings Value</div>
+      </div>
+    </div>
+
+    <!-- Admin Tabs -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="switchTab('products')">📦 All Products</button>
+      <button class="admin-tab" onclick="switchTab('users')">👥 All Users</button>
+    </div>
+
+    <!-- Products Tab -->
+    <div id="tab-products" class="admin-section">
+      <div class="admin-section-header">
+        <h3>📦 All Products</h3>
+        <input 
+          type="text" 
+          class="search-table-input" 
+          placeholder="🔍 Search products..." 
+          oninput="filterProducts(this.value)"
+        >
+      </div>
+      <div id="products-loading-admin" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+      </div>
+      <div class="data-table-wrap" id="products-table-wrap" style="display:none;">
+        <table class="data-table" id="products-table">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Title</th>
+              <th>Price</th>
+              <th>Description</th>
+              <th>Seller</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users Tab -->
+    <div id="tab-users" class="admin-section" style="display:none;">
+      <div class="admin-section-header">
+        <h3>👥 All Users</h3>
+        <input 
+          type="text" 
+          class="search-table-input" 
+          placeholder="🔍 Search users..." 
+          oninput="filterUsers(this.value)"
+        >
+      </div>
+      <div id="users-loading-admin" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+      </div>
+      <div class="data-table-wrap" id="users-table-wrap" style="display:none;">
+        <table class="data-table" id="users-table">
+          <thead>
+            <tr>
+              <th>Avatar</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Joined</th>
+              <th>Products</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ EDIT PRODUCT MODAL (Admin) ============ -->
+  <div class="modal-overlay hidden" id="admin-edit-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>✏️ Edit Product</h3>
+        <button class="modal-close" onclick="closeAdminEditModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="admin-edit-alert" class="alert hidden"></div>
+        <form id="admin-edit-form">
+          <input type="hidden" id="admin-edit-product-id">
+          <div class="form-group">
+            <label for="admin-edit-title">Title</label>
+            <input type="text" id="admin-edit-title" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="admin-edit-price">Price (₹)</label>
+            <div class="input-group">
+              <span class="input-prefix">₹</span>
+              <input type="number" id="admin-edit-price" class="form-control" required min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="admin-edit-description">Description</label>
+            <textarea id="admin-edit-description" class="form-control" rows="4"></textarea>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="button" class="btn btn-ghost" onclick="closeAdminEditModal()" style="flex:1;">Cancel</button>
+            <button type="submit" id="admin-edit-submit" class="btn btn-primary" style="flex:2;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    let adminUser = null;
+    let allProductsAdmin = [];
+    let allUsersAdmin = [];
+
+    // ================================================================
+    // ADMIN LOGIN LOGIC
+    // ================================================================
+    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('admin-login-btn');
+      const alertEl = document.getElementById('admin-login-alert');
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value;
+
+      alertEl.classList.add('hidden');
+      setLoading(btn, true);
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        const user = data.user;
+
+        // Check if user has admin role in metadata
+        const isAdmin = user.user_metadata?.is_admin === true ||
+                        user.email === 'admin@marketplace.com'; // Fallback: hardcoded admin email
+
+        if (!isAdmin) {
+          await supabaseClient.auth.signOut();
+          throw new Error('Access denied. You do not have admin privileges.');
+        }
+
+        adminUser = user;
+        document.getElementById('admin-login-overlay').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        showToast('Admin access granted!', 'success');
+        loadAdminData();
+
+      } catch (err) {
+        alertEl.className = 'alert alert-error';
+        alertEl.innerHTML = `❌ ${err.message}`;
+        alertEl.classList.remove('hidden');
+        setLoading(btn, false);
+      }
+    });
+
+    // ================================================================
+    // LOAD ALL DATA
+    // ================================================================
+    async function loadAdminData() {
+      await Promise.all([loadAdminProducts(), loadAdminUsers()]);
+    }
+
+    async function refreshData() {
+      showToast('Refreshing data...', 'default');
+      await loadAdminData();
+    }
+
+    async function loadAdminProducts() {
+      const loading = document.getElementById('products-loading-admin');
+      const tableWrap = document.getElementById('products-table-wrap');
+
+      loading.style.display = 'flex';
+      tableWrap.style.display = 'none';
+
+      try {
+        // Admin query: get ALL products with seller info
+        const { data, error } = await supabaseClient
+          .from('products')
+          .select(`*, profiles(name, email, phone)`)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        allProductsAdmin = data || [];
+
+        // Update stats
+        document.getElementById('stat-products').textContent = allProductsAdmin.length;
+        const today = new Date().toISOString().split('T')[0];
+        const todayCount = allProductsAdmin.filter(p => p.created_at.startsWith(today)).length;
+        document.getElementById('stat-today').textContent = todayCount;
+        const totalVal = allProductsAdmin.reduce((sum, p) => sum + parseFloat(p.price || 0), 0);
+        document.getElementById('stat-value').textContent = formatPrice(totalVal);
+
+        loading.style.display = 'none';
+        tableWrap.style.display = 'block';
+        renderProductsTable(allProductsAdmin);
+
+      } catch (err) {
+        loading.style.display = 'none';
+        tableWrap.style.display = 'block';
+        document.getElementById('products-tbody').innerHTML = `<tr><td colspan="7" class="no-results">Error: ${err.message}</td></tr>`;
+      }
+    }
+
+    async function loadAdminUsers() {
+      const loading = document.getElementById('users-loading-admin');
+      const tableWrap = document.getElementById('users-table-wrap');
+
+      loading.style.display = 'flex';
+      tableWrap.style.display = 'none';
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        allUsersAdmin = data || [];
+
+        document.getElementById('stat-users').textContent = allUsersAdmin.length;
+
+        loading.style.display = 'none';
+        tableWrap.style.display = 'block';
+        renderUsersTable(allUsersAdmin);
+
+      } catch (err) {
+        loading.style.display = 'none';
+        tableWrap.style.display = 'block';
+        document.getElementById('users-tbody').innerHTML = `<tr><td colspan="6" class="no-results">Error: ${err.message}</td></tr>`;
+      }
+    }
+
+    // ================================================================
+    // RENDER TABLES
+    // ================================================================
+    function renderProductsTable(products) {
+      const tbody = document.getElementById('products-tbody');
+      if (products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="no-results">No products found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = products.map(product => {
+        const seller = product.profiles || {};
+        const imgUrl = product.image_url_1 || product.image_url_2 || '';
+        const imgContent = imgUrl
+          ? `<img src="${imgUrl}" alt="" onerror="this.parentElement.innerHTML='🖼️'" style="width:100%;height:100%;object-fit:cover;">`
+          : '🖼️';
+
+        return `
+          <tr data-id="${product.id}">
+            <td>
+              <div class="table-product-img">${imgContent}</div>
+            </td>
+            <td style="max-width:180px;">
+              <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(product.title)}</div>
+            </td>
+            <td style="font-family:var(--font-heading);font-weight:700;color:var(--primary);white-space:nowrap;">${formatPrice(product.price)}</td>
+            <td style="max-width:200px;">
+              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-muted);font-size:0.85rem;">${escapeHtml(product.description)}</div>
+            </td>
+            <td>
+              <div style="font-size:0.85rem;">
+                <div style="font-weight:500;">${escapeHtml(seller.name || 'Unknown')}</div>
+                <div style="color:var(--text-muted);">${escapeHtml(seller.email || '')}</div>
+              </div>
+            </td>
+            <td style="white-space:nowrap;font-size:0.83rem;color:var(--text-muted);">${formatDate(product.created_at)}</td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-ghost btn-sm" onclick="openAdminEditModal('${product.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="adminDeleteProduct('${product.id}', '${escapeHtml(product.title)}', ['${product.image_url_1 || ''}','${product.image_url_2 || ''}'])">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderUsersTable(users) {
+      const tbody = document.getElementById('users-tbody');
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="no-results">No users found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = users.map(user => {
+        const name = user.name || 'No name';
+        const productCount = allProductsAdmin.filter(p => p.user_id === user.id).length;
+
+        return `
+          <tr>
+            <td>
+              <div style="width:38px;height:38px;border-radius:50%;background:var(--primary);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;font-family:var(--font-heading);">
+                ${getInitials(name)}
+              </div>
+            </td>
+            <td style="font-weight:600;">${escapeHtml(name)}</td>
+            <td style="color:var(--text-muted);font-size:0.88rem;">${escapeHtml(user.email || '')}</td>
+            <td style="font-size:0.88rem;">${escapeHtml(user.phone || '—')}</td>
+            <td style="font-size:0.83rem;color:var(--text-muted);">${user.created_at ? formatDate(user.created_at) : '—'}</td>
+            <td>
+              <span style="background:var(--bg);border:1.5px solid var(--border);border-radius:20px;padding:3px 12px;font-size:0.82rem;font-weight:600;">
+                ${productCount} listings
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ================================================================
+    // FILTER TABLES
+    // ================================================================
+    function filterProducts(query) {
+      const q = query.toLowerCase();
+      const filtered = allProductsAdmin.filter(p =>
+        p.title?.toLowerCase().includes(q) ||
+        p.description?.toLowerCase().includes(q) ||
+        p.profiles?.email?.toLowerCase().includes(q) ||
+        p.profiles?.name?.toLowerCase().includes(q)
+      );
+      renderProductsTable(filtered);
+    }
+
+    function filterUsers(query) {
+      const q = query.toLowerCase();
+      const filtered = allUsersAdmin.filter(u =>
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q)
+      );
+      renderUsersTable(filtered);
+    }
+
+    // ================================================================
+    // TABS
+    // ================================================================
+    function switchTab(tab) {
+      document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.getElementById('tab-products').style.display = tab === 'products' ? 'block' : 'none';
+      document.getElementById('tab-users').style.display = tab === 'users' ? 'block' : 'none';
+    }
+
+    // ================================================================
+    // ADMIN EDIT PRODUCT
+    // ================================================================
+    window.openAdminEditModal = (productId) => {
+      const product = allProductsAdmin.find(p => p.id === productId);
+      if (!product) return;
+
+      document.getElementById('admin-edit-product-id').value = product.id;
+      document.getElementById('admin-edit-title').value = product.title;
+      document.getElementById('admin-edit-price').value = product.price;
+      document.getElementById('admin-edit-description').value = product.description;
+      document.getElementById('admin-edit-alert').classList.add('hidden');
+      document.getElementById('admin-edit-modal').classList.remove('hidden');
+    };
+
+    window.closeAdminEditModal = () => {
+      document.getElementById('admin-edit-modal').classList.add('hidden');
+    };
+
+    document.getElementById('admin-edit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('admin-edit-submit');
+      const alertEl = document.getElementById('admin-edit-alert');
+      const id = document.getElementById('admin-edit-product-id').value;
+      const title = document.getElementById('admin-edit-title').value.trim();
+      const price = document.getElementById('admin-edit-price').value;
+      const description = document.getElementById('admin-edit-description').value.trim();
+
+      alertEl.classList.add('hidden');
+      setLoading(btn, true);
+
+      try {
+        await updateProduct(id, { title, price: parseFloat(price), description });
+        closeAdminEditModal();
+        showToast('Product updated!', 'success');
+        await loadAdminProducts();
+      } catch (err) {
+        alertEl.className = 'alert alert-error';
+        alertEl.innerHTML = `❌ ${err.message}`;
+        alertEl.classList.remove('hidden');
+        setLoading(btn, false);
+      }
+    });
+
+    // ================================================================
+    // ADMIN DELETE PRODUCT
+    // ================================================================
+    window.adminDeleteProduct = async (productId, title, images) => {
+      if (!confirm(`Are you sure you want to delete "${title}"? This cannot be undone.`)) return;
+
+      try {
+        await deleteProduct(productId, images.filter(Boolean));
+        showToast('Product deleted.', 'success');
+        await loadAdminProducts();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    };
+
+    // ================================================================
+    // ADMIN LOGOUT
+    // ================================================================
+    async function adminLogout() {
+      await supabaseClient.auth.signOut();
+      document.getElementById('admin-panel').style.display = 'none';
+      document.getElementById('admin-login-overlay').style.display = 'flex';
+      document.getElementById('admin-email').value = '';
+      document.getElementById('admin-password').value = '';
+      showToast('Logged out from admin panel.', 'default');
+    }
+
+    // Close modal on overlay click
+    document.getElementById('admin-edit-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeAdminEditModal();
+    });
+
+    // Check if already logged in as admin
+    (async () => {
+      const user = await getSession();
+      if (user && user.user_metadata?.is_admin === true) {
+        adminUser = user;
+        document.getElementById('admin-login-overlay').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        loadAdminData();
+      }
+    })();
+  </script>
+</body>
+</html>

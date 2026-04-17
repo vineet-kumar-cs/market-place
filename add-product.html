@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Product — MarketPlace</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
+    <div class="navbar-actions" id="nav-actions">
+      <a href="index.html" class="btn btn-outline btn-sm">Browse</a>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <a href="dashboard.html" class="back-btn" title="Back">&#8592;</a>
+    <h2>📦 Add New Listing</h2>
+  </div>
+
+  <!-- Main Content -->
+  <div style="max-width:640px;margin:0 auto;padding:32px 24px;">
+    <div class="dashboard-section fade-in">
+
+      <div id="product-alert" class="alert hidden"></div>
+
+      <form id="add-product-form" novalidate>
+
+        <!-- Title -->
+        <div class="form-group">
+          <label for="title">Product Title <span style="color:var(--danger)">*</span></label>
+          <input 
+            type="text" 
+            id="title" 
+            class="form-control" 
+            placeholder="e.g., iPhone 14 Pro - 128GB Black" 
+            required
+            maxlength="120"
+          >
+          <div class="form-hint">Be specific — good titles get more views</div>
+        </div>
+
+        <!-- Price -->
+        <div class="form-group">
+          <label for="price">Price (₹) <span style="color:var(--danger)">*</span></label>
+          <div class="input-group">
+            <span class="input-prefix">₹</span>
+            <input 
+              type="number" 
+              id="price" 
+              class="form-control" 
+              placeholder="0" 
+              required
+              min="0"
+              max="99999999"
+              step="1"
+            >
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label for="description">Description <span style="color:var(--danger)">*</span></label>
+          <textarea 
+            id="description" 
+            class="form-control" 
+            placeholder="Describe the condition, features, reason for selling, and any other important details..."
+            required
+            rows="5"
+            maxlength="2000"
+          ></textarea>
+          <div class="form-hint">Tip: Mention condition (new/used), age, accessories included, reason for selling</div>
+        </div>
+
+        <!-- Image Upload -->
+        <div class="form-group">
+          <label>Photos <span style="color:var(--text-muted);font-weight:400;">(Max 2 images, each up to 3MB)</span></label>
+
+          <div class="upload-area" id="upload-area">
+            <input 
+              type="file" 
+              id="image-input" 
+              accept="image/jpeg,image/jpg,image/png,image/webp" 
+              multiple
+            >
+            <div class="upload-icon">📸</div>
+            <p><span class="upload-link">Click to upload</span> or drag &amp; drop</p>
+            <p style="font-size:0.82rem;margin-top:4px;">JPG, PNG, WebP — max 3MB each</p>
+          </div>
+
+          <!-- Image counter -->
+          <div id="image-counter" class="form-hint mt-8">0/2 images selected</div>
+
+          <!-- Preview area -->
+          <div class="image-previews" id="image-previews"></div>
+        </div>
+
+        <!-- Tips box -->
+        <div class="alert alert-info" style="margin-bottom:20px;">
+          💡 <strong>Tips for a great listing:</strong> Use clear, well-lit photos. Set a fair price by checking similar listings. Add as much detail as possible in the description.
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-full btn-lg">
+          🚀 Publish Listing
+        </button>
+
+        <div style="text-align:center;margin-top:12px;">
+          <a href="dashboard.html" class="btn btn-ghost btn-sm">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    initAddProductPage();
+    updateNavbar();
+  </script>
+</body>
+</html>

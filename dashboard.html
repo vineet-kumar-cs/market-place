@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — MarketPlace</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
+    <div class="navbar-actions" id="nav-actions">
+      <a href="index.html" class="btn btn-outline btn-sm">Browse</a>
+      <button onclick="signOut()" class="btn btn-primary btn-sm">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="dashboard-page fade-in">
+
+    <!-- Profile Card -->
+    <div class="profile-card" id="profile-card">
+      <div class="profile-avatar-large" id="profile-avatar">?</div>
+      <div class="profile-info">
+        <div class="profile-name" id="profile-name">Loading...</div>
+        <div class="profile-email" id="profile-email"></div>
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <div class="profile-stat-num" id="products-count">0</div>
+            <div class="profile-stat-label">Listings</div>
+          </div>
+        </div>
+      </div>
+      <div class="profile-card-actions">
+        <a href="add-product.html" class="btn btn-primary">+ Add Product</a>
+        <a href="admin.html" class="btn btn-outline btn-sm">🔐 Admin Panel</a>
+        <button onclick="signOut()" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </div>
+
+    <!-- My Listings Section -->
+    <div class="dashboard-section">
+      <div class="dashboard-section-header">
+        <div class="dashboard-section-title">📦 My Listings</div>
+        <a href="add-product.html" class="btn btn-primary btn-sm">+ Add New</a>
+      </div>
+
+      <!-- Loading -->
+      <div id="listings-loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading your products...</p>
+      </div>
+
+      <!-- List -->
+      <div id="user-products-list" style="display:none;"></div>
+    </div>
+
+  </div>
+
+  <!-- ============ EDIT PRODUCT MODAL ============ -->
+  <div class="modal-overlay hidden" id="edit-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>✏️ Edit Product</h3>
+        <button class="modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="edit-alert" class="alert hidden"></div>
+        <form id="edit-form">
+          <input type="hidden" id="edit-product-id">
+          <div class="form-group">
+            <label for="edit-title">Title</label>
+            <input type="text" id="edit-title" class="form-control" placeholder="Product title" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-price">Price (₹)</label>
+            <div class="input-group">
+              <span class="input-prefix">₹</span>
+              <input type="number" id="edit-price" class="form-control" placeholder="0" required min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-description">Description</label>
+            <textarea id="edit-description" class="form-control" placeholder="Describe your product..."></textarea>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="button" class="btn btn-ghost" onclick="closeEditModal()" style="flex:1;">Cancel</button>
+            <button type="submit" id="edit-submit-btn" class="btn btn-primary" style="flex:2;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DELETE CONFIRM MODAL ============ -->
+  <div class="modal-overlay hidden" id="delete-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>🗑️ Confirm Delete</h3>
+        <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;padding:10px 0 20px;">
+          <div style="font-size:3rem;margin-bottom:14px;">⚠️</div>
+          <p style="font-size:1rem;font-weight:600;margin-bottom:8px;">Delete "<span id="delete-product-name"></span>"?</p>
+          <p style="color:var(--text-muted);font-size:0.9rem;">This action cannot be undone. The product and its images will be permanently removed.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="closeDeleteModal()" style="flex:1;">Cancel</button>
+          <button class="btn btn-danger" id="confirm-delete-btn" style="flex:1;">Yes, Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    let currentUser = null;
+    let userProducts = [];
+    let deleteTargetId = null;
+    let deleteTargetImages = [];
+
+    async function initDashboard() {
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+
+      await updateNavbar();
+      await loadProfileCard();
+      await loadUserProducts();
+    }
+
+    async function loadProfileCard() {
+      const profile = await getUserProfile(currentUser.id);
+      const name = profile?.name || currentUser.email;
+
+      document.getElementById('profile-avatar').textContent = getInitials(name);
+      document.getElementById('profile-name').textContent = name;
+      document.getElementById('profile-email').textContent = '📧 ' + currentUser.email;
+    }
+
+    async function loadUserProducts() {
+      const loadingEl = document.getElementById('listings-loading');
+      const listEl = document.getElementById('user-products-list');
+
+      loadingEl.style.display = 'flex';
+      listEl.style.display = 'none';
+
+      try {
+        userProducts = await getUserProducts(currentUser.id);
+        document.getElementById('products-count').textContent = userProducts.length;
+
+        loadingEl.style.display = 'none';
+        listEl.style.display = 'block';
+
+        renderUserProductList(userProducts, listEl);
+      } catch (err) {
+        loadingEl.style.display = 'none';
+        listEl.style.display = 'block';
+        listEl.innerHTML = `<div class="alert alert-error">❌ Error loading products: ${err.message}</div>`;
+      }
+    }
+
+    // ---- EDIT MODAL ----
+    window.openEditModal = (productId) => {
+      const product = userProducts.find(p => p.id === productId);
+      if (!product) return;
+
+      document.getElementById('edit-product-id').value = product.id;
+      document.getElementById('edit-title').value = product.title;
+      document.getElementById('edit-price').value = product.price;
+      document.getElementById('edit-description').value = product.description;
+      document.getElementById('edit-alert').classList.add('hidden');
+
+      document.getElementById('edit-modal').classList.remove('hidden');
+    };
+
+    window.closeEditModal = () => {
+      document.getElementById('edit-modal').classList.add('hidden');
+    };
+
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('edit-submit-btn');
+      const alertEl = document.getElementById('edit-alert');
+
+      const id = document.getElementById('edit-product-id').value;
+      const title = document.getElementById('edit-title').value.trim();
+      const price = document.getElementById('edit-price').value;
+      const description = document.getElementById('edit-description').value.trim();
+
+      if (!title || !price || !description) {
+        alertEl.className = 'alert alert-error';
+        alertEl.innerHTML = '❌ Please fill all fields.';
+        alertEl.classList.remove('hidden');
+        return;
+      }
+
+      alertEl.classList.add('hidden');
+      setLoading(btn, true);
+
+      try {
+        await updateProduct(id, { title, price: parseFloat(price), description });
+        closeEditModal();
+        showToast('Product updated successfully!', 'success');
+        await loadUserProducts();
+      } catch (err) {
+        alertEl.className = 'alert alert-error';
+        alertEl.innerHTML = `❌ ${err.message}`;
+        alertEl.classList.remove('hidden');
+        setLoading(btn, false);
+      }
+    });
+
+    // ---- DELETE MODAL ----
+    window.confirmDeleteProduct = (productId, title, images) => {
+      deleteTargetId = productId;
+      deleteTargetImages = images.filter(Boolean);
+      document.getElementById('delete-product-name').textContent = title;
+      document.getElementById('delete-modal').classList.remove('hidden');
+    };
+
+    window.closeDeleteModal = () => {
+      document.getElementById('delete-modal').classList.add('hidden');
+      deleteTargetId = null;
+      deleteTargetImages = [];
+    };
+
+    document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      const btn = document.getElementById('confirm-delete-btn');
+      setLoading(btn, true);
+
+      try {
+        await deleteProduct(deleteTargetId, deleteTargetImages);
+        closeDeleteModal();
+        showToast('Product deleted.', 'success');
+        await loadUserProducts();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+        setLoading(btn, false);
+      }
+    });
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.add('hidden');
+        }
+      });
+    });
+
+    initDashboard();
+  </script>
+</body>
+</html>

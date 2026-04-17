@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarketPlace — Buy & Sell Anything</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- ============ NAVBAR ============ -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      Market<span>Place</span>
+    </div>
+    <div class="navbar-actions" id="nav-actions">
+      <!-- Updated dynamically via JS -->
+      <a href="login.html" class="btn btn-outline btn-sm">Login</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Sign Up</a>
+    </div>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Buy &amp; Sell <span class="accent">Anything</span><br>Near You</h1>
+      <p>India's trusted marketplace. List your items in minutes and reach thousands of buyers.</p>
+      <div class="hero-cta">
+        <a href="signup.html" class="btn btn-primary btn-lg" id="hero-cta-signup">Start Selling</a>
+        <a href="#products" class="btn btn-outline btn-lg">Browse Listings</a>
+      </div>
+      <!-- Search Bar -->
+      <div class="search-bar" id="search-bar">
+        <span style="color:var(--text-muted);font-size:1.1rem;">🔍</span>
+        <input type="text" id="search-input" placeholder="Search for cars, phones, furniture...">
+        <button class="btn btn-primary btn-sm" onclick="doSearch()">Search</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CATEGORIES ============ -->
+  <div class="categories-bar">
+    <div class="categories-inner">
+      <div class="category-item active" onclick="filterCategory('')">All</div>
+      <div class="category-item" onclick="filterCategory('phone')">📱 Phones</div>
+      <div class="category-item" onclick="filterCategory('car')">🚗 Cars</div>
+      <div class="category-item" onclick="filterCategory('bike')">🏍️ Bikes</div>
+      <div class="category-item" onclick="filterCategory('laptop')">💻 Laptops</div>
+      <div class="category-item" onclick="filterCategory('furniture')">🪑 Furniture</div>
+      <div class="category-item" onclick="filterCategory('clothes')">👗 Clothes</div>
+      <div class="category-item" onclick="filterCategory('book')">📚 Books</div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main>
+    <!-- Login Banner (shown when not logged in) -->
+    <div class="section" id="login-banner-section" style="display:none;">
+      <div class="login-banner">
+        <div>
+          <h3>🔒 Login to see full details &amp; contact sellers</h3>
+          <p>Create a free account to unlock product details, prices, and seller contact info.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap;">
+          <a href="login.html" class="btn btn-outline">Login</a>
+          <a href="signup.html" class="btn btn-primary">Sign Up Free</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products Section -->
+    <div class="section" id="products">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Fresh Listings</div>
+          <div class="section-subtitle" id="products-count">Loading...</div>
+        </div>
+        <div id="add-product-btn-wrap" style="display:none;">
+          <a href="add-product.html" class="btn btn-primary">+ Sell Something</a>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="products-loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading listings...</p>
+      </div>
+
+      <!-- Products Grid -->
+      <div class="products-grid" id="products-grid" style="display:none;"></div>
+    </div>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <p>&copy; 2024 <strong>MarketPlace</strong> — Buy &amp; Sell Anything, Anytime.</p>
+  </footer>
+
+  <!-- JS FILES -->
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    let currentUser = null;
+    let allProducts = [];
+    let currentSearch = '';
+
+    async function initHomePage() {
+      // Check auth state
+      currentUser = await getSession();
+      await updateNavbar();
+
+      // Update UI based on login state
+      const loginBanner = document.getElementById('login-banner-section');
+      const addBtn = document.getElementById('add-product-btn-wrap');
+      const heroCta = document.getElementById('hero-cta-signup');
+
+      if (currentUser) {
+        if (loginBanner) loginBanner.style.display = 'none';
+        if (addBtn) addBtn.style.display = 'block';
+        if (heroCta) { heroCta.textContent = '+ Sell Something'; heroCta.href = 'add-product.html'; }
+      } else {
+        if (loginBanner) loginBanner.style.display = 'block';
+        if (addBtn) addBtn.style.display = 'none';
+      }
+
+      // Load products
+      await loadProducts();
+    }
+
+    async function loadProducts(search = '') {
+      const loading = document.getElementById('products-loading');
+      const grid = document.getElementById('products-grid');
+      const count = document.getElementById('products-count');
+
+      loading.style.display = 'flex';
+      grid.style.display = 'none';
+
+      try {
+        allProducts = await getAllProducts(search);
+
+        if (count) count.textContent = `${allProducts.length} listing${allProducts.length !== 1 ? 's' : ''} found`;
+
+        loading.style.display = 'none';
+        grid.style.display = 'grid';
+
+        renderProductCards(allProducts, grid, !!currentUser);
+
+        // Add "Login to view" overlay cards if not logged in
+        if (!currentUser) {
+          document.querySelectorAll('.product-card').forEach(card => {
+            const overlay = document.createElement('div');
+            overlay.className = 'product-locked-overlay';
+            overlay.title = 'Login to view full details';
+            overlay.onclick = () => window.location.href = 'login.html';
+            overlay.style.cursor = 'pointer';
+            card.appendChild(overlay);
+          });
+        }
+      } catch (err) {
+        loading.style.display = 'none';
+        grid.style.display = 'grid';
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">⚠️</div><h3>Could not load products</h3><p>${err.message}</p></div>`;
+      }
+    }
+
+    function doSearch() {
+      currentSearch = document.getElementById('search-input').value.trim();
+      loadProducts(currentSearch);
+    }
+
+    function filterCategory(keyword) {
+      document.querySelectorAll('.category-item').forEach(item => {
+        item.classList.toggle('active', item.getAttribute('onclick').includes(`'${keyword}'`));
+      });
+      document.getElementById('search-input').value = keyword;
+      loadProducts(keyword);
+    }
+
+    // Search on Enter key
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doSearch();
+    });
+
+    // Boot
+    initHomePage();
+  </script>
+</body>
+</html>
