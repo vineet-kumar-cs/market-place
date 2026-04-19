@@ -14,7 +14,7 @@ async function getSession() {
 // ============================================================
 // SIGN UP — Creates new user with email + password
 // ============================================================
-async function signUp(email, password, name = '') {
+async function signUp(email, password, name = '', phone = '') {
   const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
@@ -31,6 +31,7 @@ async function signUp(email, password, name = '') {
       id: data.user.id,
       name: name || '',
       email: email,
+      phone: phone || '',
       created_at: new Date().toISOString()
     });
   }
@@ -180,6 +181,7 @@ function initSignupPage() {
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     const confirm = document.getElementById('confirm-password').value;
+    const phone = document.getElementById('phone').value.trim();
 
     // Validation
     if (password !== confirm) {
@@ -200,7 +202,7 @@ function initSignupPage() {
     setLoading(btn, true);
 
     try {
-      await signUp(email, password, name);
+      await signUp(email, password, name, phone);
       alertEl.className = 'alert alert-success';
       alertEl.innerHTML = '✅ Account created! Please check your email to verify, then <a href="login.html">login here</a>.';
       alertEl.classList.remove('hidden');
