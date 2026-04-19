@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wishlist — MarketPlace</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
+    <div class="navbar-actions" id="nav-actions">
+      <a href="index.html" class="btn btn-outline btn-sm">Browse</a>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <a href="index.html" class="back-btn" title="Back">&#8592;</a>
+    <h2>❤️ My Wishlist</h2>
+  </div>
+
+  <!-- Main Content -->
+  <main>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Saved Items</div>
+          <div class="section-subtitle" id="wishlist-count">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="wishlist-loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading your wishlist...</p>
+      </div>
+
+      <!-- Wishlist Grid -->
+      <div class="products-grid" id="wishlist-grid" style="display:none;"></div>
+    </div>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <p>&copy; 2024 <strong>MarketPlace</strong> — Buy &amp; Sell Anything, Anytime.</p>
+  </footer>
+
+  <!-- JS -->
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    let currentUser = null;
+    let wishlistProducts = [];
+
+    async function initWishlistPage() {
+      // Check auth state (optional - can view wishlist without login)
+      currentUser = await getSession();
+      await updateNavbar();
+
+      // Load wishlist
+      await loadWishlist();
+    }
+
+    async function loadWishlist() {
+      const loading = document.getElementById('wishlist-loading');
+      const grid = document.getElementById('wishlist-grid');
+      const count = document.getElementById('wishlist-count');
+
+      loading.style.display = 'flex';
+      grid.style.display = 'none';
+
+      try {
+        // Get wishlist from localStorage
+        const wishlistIds = getWishlist().map(item => item.id);
+
+        if (wishlistIds.length === 0) {
+          loading.style.display = 'none';
+          grid.style.display = 'grid';
+          grid.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1;">
+              <div class="empty-icon">🤍</div>
+              <h3>Your wishlist is empty</h3>
+              <p>Save items to your wishlist to view them here!</p>
+              <a href="index.html" class="btn btn-primary">Browse Products</a>
+            </div>
+          `;
+          if (count) count.textContent = '0 items';
+          return;
+        }
+
+        // Fetch products from database
+        const { data, error } = await supabaseClient
+          .from('products')
+          .select('*')
+          .in('id', wishlistIds);
+
+        if (error) throw error;
+
+        wishlistProducts = data || [];
+
+        if (count) count.textContent = `${wishlistProducts.length} item${wishlistProducts.length !== 1 ? 's' : ''}`;
+
+        loading.style.display = 'none';
+        grid.style.display = 'grid';
+
+        renderWishlistProducts(wishlistProducts, grid);
+
+      } catch (err) {
+        loading.style.display = 'none';
+        grid.style.display = 'grid';
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">⚠️</div><h3>Could not load wishlist</h3><p>${err.message}</p></div>`;
+      }
+    }
+
+    function renderWishlistProducts(products, container) {
+      if (!container) return;
+
+      container.innerHTML = products.map((product, i) => {
+        const imageUrl = product.image_url_1 || product.image_url_2 || '';
+        const isNew = (Date.now() - new Date(product.created_at)) < 86400000 * 3; // 3 days
+
+        const imageContent = imageUrl
+          ? `<img src="${imageUrl}" alt="${escapeHtml(product.title)}" loading="lazy" onerror="this.parentElement.innerHTML='🖼️'">`
+          : `<span>🖼️</span>`;
+
+        return `
+          <div class="product-card clickable card-appear stagger-${(i % 4) + 1}" 
+               onclick="window.location.href='product.html?id=${product.id}'">
+            ${isNew ? '<span class="badge-new">NEW</span>' : ''}
+            <div class="product-card-image">${imageContent}</div>
+            <div class="product-card-body">
+              <div class="product-card-price">${formatPrice(product.price)}</div>
+              <div class="product-card-title">${escapeHtml(product.title)}</div>
+              <div class="product-card-desc">${escapeHtml(product.description)}</div>
+              <div class="product-card-meta">
+                <span>📅 ${formatDate(product.created_at)}</span>
+              </div>
+            </div>
+            <button class="remove-wishlist-btn" onclick="removeFromWishlistAndRefresh(event, '${product.id}')">✕</button>
+          </div>
+        `;
+      }).join('');
+
+      // Add CSS for remove button hover effect
+      const style = document.createElement('style');
+      style.textContent = `
+        .product-card {
+          position: relative;
+        }
+        .remove-wishlist-btn {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          cursor: pointer;
+          font-size: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .product-card:hover .remove-wishlist-btn {
+          opacity: 1;
+        }
+        .remove-wishlist-btn:hover {
+          background: rgba(255, 59, 48, 0.9);
+          color: white;
+          transform: scale(1.1);
+        }
+      `;
+      if (!document.getElementById('wishlist-styles')) {
+        style.id = 'wishlist-styles';
+        document.head.appendChild(style);
+      }
+    }
+
+    window.removeFromWishlistAndRefresh = (event, productId) => {
+      event.stopPropagation(); // Prevent navigating to product detail
+      const wishlist = getWishlist();
+      const updatedWishlist = wishlist.filter(item => item.id !== productId);
+      saveWishlist(updatedWishlist);
+      showToast('Removed from wishlist', 'default');
+      loadWishlist();
+    };
+
+    // Boot
+    initWishlistPage();
+  </script>
+</body>
+</html>

@@ -75,6 +75,45 @@ async function getUserProfile(userId) {
 }
 
 // ============================================================
+// UPDATE USER PROFILE (name, phone, email)
+// ============================================================
+async function updateUserProfile(userId, updates) {
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
+// UPDATE USER PASSWORD
+// ============================================================
+async function updateUserPassword(newPassword) {
+  const { data, error } = await supabaseClient.auth.updateUser({
+    password: newPassword
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
+// UPDATE USER EMAIL
+// ============================================================
+async function updateUserEmail(newEmail) {
+  const { data, error } = await supabaseClient.auth.updateUser({
+    email: newEmail
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
 // REQUIRE AUTH — Redirect to login if not logged in
 // Call this on protected pages (dashboard, add-product, etc.)
 // ============================================================
@@ -102,6 +141,7 @@ async function updateNavbar() {
 
     navActions.innerHTML = `
       <div class="navbar-user">
+        <a href="wishllist.html" class="btn btn-outline btn-sm">❤️ Wishlist</a>
         <a href="dashboard.html" class="nav-user-info" style="color:rgba(255,255,255,0.85);">
           <div class="nav-avatar">${initials}</div>
           <span style="display:none" id="nav-username">${name}</span>
@@ -112,6 +152,7 @@ async function updateNavbar() {
     `;
   } else {
     navActions.innerHTML = `
+      <a href="wishllist.html" class="btn btn-outline btn-sm">❤️ Wishlist</a>
       <a href="login.html" class="btn btn-outline btn-sm">Login</a>
       <a href="signup.html" class="btn btn-primary btn-sm">Sign Up</a>
     `;

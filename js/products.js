@@ -13,22 +13,34 @@
 // ]);
 
 // ============================================================
-// FETCH ALL PRODUCTS (with seller profile joined)
+// FETCH SELLER PROFILE by USER_ID
 // ============================================================
-async function getAllProducts(searchTerm = '') {
+async function getSellerProfile(userId) {
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('name, email, phone')
+    .eq('id', userId)
+    .single();
+
+  if (error) return { name: 'Unknown Seller', email: '', phone: '' };
+  return data || { name: 'Unknown Seller', email: '', phone: '' };
+}
+
+// ============================================================
+// FETCH ALL PRODUCTS (with optional category filter & search)
+// ============================================================
+async function getAllProducts(category = '', searchTerm = '') {
   let query = supabaseClient
     .from('products')
-    .select("*")
-    // .select(`
-    //   *,
-    //   profiles (
-    //     name,
-    //     email,
-    //     phone
-    //   )
-    // `)
+    .select('*')
     .order('created_at', { ascending: false });
 
+  // Filter by category
+  if (category && category !== 'all' && category !== '') {
+    query = query.eq('category', category);
+  }
+
+  // Filter by search term (title or description)
   if (searchTerm) {
     query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
   }
@@ -44,15 +56,7 @@ async function getAllProducts(searchTerm = '') {
 async function getProductById(productId) {
   const { data, error } = await supabaseClient
     .from('products')
-    .select("*")
-    // .select(`
-    //   *,
-    //   profiles (
-    //     name,
-    //     email,
-    //     phone
-    //   )
-    // `)
+    .select('*')
     .eq('id', productId)
     .single();
 
@@ -370,9 +374,10 @@ function initAddProductPage() {
     const title = document.getElementById('title').value.trim();
     const price = document.getElementById('price').value;
     const description = document.getElementById('description').value.trim();
+    const category = document.getElementById('category').value;
 
     // Validation
-    if (!title || !price || !description) {
+    if (!title || !price || !category || !description) {
       alertEl.className = 'alert alert-error';
       alertEl.innerHTML = '❌ Please fill in all fields.';
       alertEl.classList.remove('hidden');
@@ -398,6 +403,7 @@ function initAddProductPage() {
         title,
         price: parseFloat(price),
         description,
+        category,
         image_url_1,
         image_url_2,
         user_id: user.id,
@@ -440,16 +446,16 @@ async function initProductDetailPage() {
 
   try {
     const product = await getProductById(productId);
-    renderProductDetail(product, container, user);
+    const seller = await getSellerProfile(product.user_id);
+    renderProductDetail(product, container, user, seller);
   } catch (err) {
     container.innerHTML = `<div class="empty-state"><div class="empty-icon">😕</div><h3>Product not found</h3><p>${err.message}</p><a href="index.html" class="btn btn-primary">Go Home</a></div>`;
   }
 }
 
-function renderProductDetail(product, container, user) {
+function renderProductDetail(product, container, user, seller = {}) {
   const img1 = product.image_url_1;
   const img2 = product.image_url_2;
-  const seller = product.profiles || {};
   const sellerName = seller.name || seller.email || 'Anonymous Seller';
 
   let thumbnailsHtml = '';
@@ -489,6 +495,7 @@ function renderProductDetail(product, container, user) {
             <div>
               <div class="seller-name">${escapeHtml(sellerName)}</div>
               <div class="seller-label">📧 ${escapeHtml(seller.email || '')}</div>
+              <div class="seller-label">📞 ${escapeHtml(seller.phone)}</div>
               ${seller.phone ? `<div class="seller-label">📞 ${escapeHtml(seller.phone)}</div>` : ''}
             </div>
           </div>
@@ -496,12 +503,65 @@ function renderProductDetail(product, container, user) {
           ${product.user_id === user.id ? `
           <div class="divider"></div>
           <div style="display:flex;gap:10px;">
-            <a href="dashboard.html" class="btn btn-ghost btn-sm" style="flex:1;">✏️ Edit in Dashboard</a>
-          </div>` : ''}
+            <a href="dashboard.html" class="btn btn-ghost" style="flex:1;padding:12px;font-size:1rem;">✏️ Edit in Dashboard</a>
+          </div>` : `
+          <div class="divider"></div>
+          <button id="wishlist-btn" class="wishlist-btn-featured" onclick="toggleWishlist('${product.id}', '${escapeHtml(product.title)}')">
+            <span id="wishlist-icon" style="font-size:1.4rem;">🤍</span>
+            <span id="wishlist-text" style="font-weight:600;font-size:1.05rem;">Add to Wishlist</span>
+          </button>`}
         </div>
       </div>
     </div>
   `;
+
+  // Add CSS for featured wishlist button
+  if (!document.getElementById('wishlist-btn-css')) {
+    const style = document.createElement('style');
+    style.id = 'wishlist-btn-css';
+    style.textContent = `
+      .wishlist-btn-featured {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #ff6b6b;
+        background: #fff5f5;
+        color: #c92a2a;
+        border-radius: 8px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(255, 107, 107, 0.15);
+      }
+      
+      .wishlist-btn-featured:hover {
+        background: #ff6b6b;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      }
+      
+      .wishlist-btn-featured.in-wishlist {
+        border-color: #ff0000;
+        background: #ffe0e0;
+        color: #c92a2a;
+      }
+      
+      .wishlist-btn-featured.in-wishlist:hover {
+        background: #ff0000;
+        color: white;
+        border-color: #c92a2a;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Update wishlist button state
+  updateWishlistButton(product.id);
 
   // Image switching
   window.switchImage = (url, thumbEl) => {
@@ -510,4 +570,62 @@ function renderProductDetail(product, container, user) {
     document.querySelectorAll('.product-thumb').forEach(t => t.classList.remove('active'));
     if (thumbEl) thumbEl.classList.add('active');
   };
+}
+
+// ============================================================
+// WISHLIST FUNCTIONS
+// ============================================================
+function getWishlist() {
+  const wishlist = localStorage.getItem('marketplace_wishlist');
+  return wishlist ? JSON.parse(wishlist) : [];
+}
+
+function saveWishlist(wishlist) {
+  localStorage.setItem('marketplace_wishlist', JSON.stringify(wishlist));
+}
+
+function isInWishlist(productId) {
+  const wishlist = getWishlist();
+  return wishlist.some(item => item.id === productId);
+}
+
+function toggleWishlist(productId, productTitle) {
+  const wishlist = getWishlist();
+  const isInList = isInWishlist(productId);
+
+  if (isInList) {
+    // Remove from wishlist
+    const updatedWishlist = wishlist.filter(item => item.id !== productId);
+    saveWishlist(updatedWishlist);
+    showToast(`Removed from wishlist`, 'default');
+  } else {
+    // Add to wishlist
+    wishlist.push({
+      id: productId,
+      title: productTitle,
+      addedAt: new Date().toISOString()
+    });
+    saveWishlist(wishlist);
+    showToast(`Added to wishlist! 💕`, 'success');
+  }
+
+  updateWishlistButton(productId);
+}
+
+function updateWishlistButton(productId) {
+  const wishlistBtn = document.getElementById('wishlist-btn');
+  const wishlistIcon = document.getElementById('wishlist-icon');
+  const wishlistText = document.getElementById('wishlist-text');
+
+  if (!wishlistBtn) return;
+
+  if (isInWishlist(productId)) {
+    wishlistIcon.textContent = '❤️';
+    wishlistText.textContent = 'Remove from Wishlist';
+    wishlistBtn.classList.add('in-wishlist');
+  } else {
+    wishlistIcon.textContent = '🤍';
+    wishlistText.textContent = 'Add to Wishlist';
+    wishlistBtn.classList.remove('in-wishlist');
+  }
 }

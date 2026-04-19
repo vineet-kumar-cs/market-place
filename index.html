@@ -43,9 +43,16 @@
   <!-- ============ CATEGORIES ============ -->
   <div class="categories-bar">
     <div class="categories-inner">
-      <div class="category-item active" onclick="filterCategory('')">All</div>
-      <div class="category-item" onclick="filterCategory('phone')">📱 Phones</div>
-      <div class="category-item" onclick="filterCategory('book')">📚 Books</div>
+      <div class="category-item active" data-category="" onclick="filterCategory('')">All</div>
+      <div class="category-item" data-category="phone" onclick="filterCategory('phone')">📱 Phones</div>
+      <div class="category-item" data-category="book" onclick="filterCategory('book')">📚 Books</div>
+      <div class="category-item" data-category="furniture" onclick="filterCategory('furniture')">🛋️ Furniture</div>
+      <div class="category-item" data-category="vehicle" onclick="filterCategory('vehicle')">🚗 Vehicles</div>
+      <div class="category-item" data-category="electronics" onclick="filterCategory('electronics')">💻 Electronics</div>
+      <div class="category-item" data-category="fashion" onclick="filterCategory('fashion')">👗 Fashion</div>
+      <div class="category-item" data-category="other" onclick="filterCategory('other')">📦 Other</div>
+
+      
     </div>
   </div>
 
@@ -100,7 +107,8 @@
   <script>
     let currentUser = null;
     let allProducts = [];
-    let currentSearch = '';
+    let currentCategory = ''; // Track current category filter
+    let currentSearch = '';   // Track current search term
 
     async function initHomePage() {
       // Check auth state
@@ -125,7 +133,7 @@
       await loadProducts();
     }
 
-    async function loadProducts(search = '') {
+    async function loadProducts() {
       const loading = document.getElementById('products-loading');
       const grid = document.getElementById('products-grid');
       const count = document.getElementById('products-count');
@@ -134,7 +142,8 @@
       grid.style.display = 'none';
 
       try {
-        allProducts = await getAllProducts(search);
+        // Fetch products with both category and search filters
+        allProducts = await getAllProducts(currentCategory, currentSearch);
 
         if (count) count.textContent = `${allProducts.length} listing${allProducts.length !== 1 ? 's' : ''} found`;
 
@@ -163,15 +172,22 @@
 
     function doSearch() {
       currentSearch = document.getElementById('search-input').value.trim();
-      loadProducts(currentSearch);
+      // Keep category filter when searching
+      loadProducts();
     }
 
-    function filterCategory(keyword) {
+    function filterCategory(category) {
+      currentCategory = category;
+      // Don't reset search - keep it
+      updateCategoryButtons();
+      loadProducts();
+    }
+
+    function updateCategoryButtons() {
       document.querySelectorAll('.category-item').forEach(item => {
-        item.classList.toggle('active', item.getAttribute('onclick').includes(`'${keyword}'`));
+        const itemCategory = item.getAttribute('data-category') || '';
+        item.classList.toggle('active', itemCategory === currentCategory);
       });
-      document.getElementById('search-input').value = keyword;
-      loadProducts(keyword);
     }
 
     // Search on Enter key
