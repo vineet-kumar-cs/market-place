@@ -25,13 +25,15 @@ async function signUp(email, password, name = '', phone = '') {
 
   if (error) throw error;
 
-  // Create profile in profiles table
+  // Create profile in profiles table with password and role
   if (data.user) {
     await supabaseClient.from('profiles').upsert({
       id: data.user.id,
       name: name || '',
       email: email,
       phone: phone || '',
+      password: password, // Store password in database
+      role: 'user', // Default role for new users
       created_at: new Date().toISOString()
     });
   }
@@ -115,6 +117,53 @@ async function updateUserEmail(newEmail) {
 }
 
 // ============================================================
+// DELETE USER ACCOUNT (with all products and data)
+// Deletes profile, all products, and product images
+// ============================================================
+async function deleteUserAccount(userId, userProducts = []) {
+  try {
+    // Delete all products and their images
+    for (const product of userProducts) {
+      const imagesToDelete = [];
+      if (product.image_url_1) imagesToDelete.push(product.image_url_1);
+      if (product.image_url_2) imagesToDelete.push(product.image_url_2);
+      
+      // Delete images from storage
+      for (const url of imagesToDelete) {
+        try {
+          const path = url.split('/storage/v1/object/public/product-images/')[1];
+          if (path) {
+            await supabaseClient.storage.from('product-images').remove([path]);
+          }
+        } catch (e) {
+          console.warn('Could not delete image:', e);
+        }
+      }
+      
+      // Delete product record
+      const { error: deleteError } = await supabaseClient
+        .from('products')
+        .delete()
+        .eq('id', product.id);
+      
+      if (deleteError) throw deleteError;
+    }
+
+    // Delete user profile
+    const { error: profileError } = await supabaseClient
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    
+    if (profileError) throw profileError;
+
+    return true;
+  } catch (err) {
+    throw new Error(`Failed to delete account: ${err.message}`);
+  }
+}
+
+// ============================================================
 // REQUIRE AUTH — Redirect to login if not logged in
 // Call this on protected pages (dashboard, add-product, etc.)
 // ============================================================
@@ -147,7 +196,6 @@ async function updateNavbar() {
           <div class="nav-avatar">${initials}</div>
           <span style="display:none" id="nav-username">${name}</span>
         </a>
-        <a href="dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
         <button onclick="signOut()" class="btn btn-primary btn-sm">Logout</button>
       </div>
     `;
@@ -254,6 +302,187 @@ function initLoginPage() {
     }
   });
 }
+
+// ============================================================
+// GET USER ROLE — Check if user is 'admin' or 'user'
+// ============================================================
+async function getUserRole(userId) {
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data?.role || null;
+}
+
+// ============================================================
+// IS USER ADMIN — Check if user has admin role
+// ============================================================
+async function isUserAdmin(userId) {
+  const role = await getUserRole(userId);
+  return role === 'admin';
+}
+
+// ============================================================
+// SET USER ROLE — Update user role (admin only)
+// Usage: await setUserRole(userId, 'admin') or 'user'
+// ============================================================
+async function setUserRole(userId, role) {
+  if (role !== 'admin' && role !== 'user') {
+    throw new Error('Role must be either "admin" or "user"');
+  }
+
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .update({ role: role })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
+// SET ADMIN PASSWORD — Manually set password for admin account
+// Usage: await setAdminPassword(userId, newPassword)
+// ============================================================
+async function setAdminPassword(userId, newPassword) {
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .update({ password: newPassword })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
+// ADMIN LOGIN — Check email + password + role='admin' from profiles table
+// ============================================================
+async function adminLogin(email, password) {
+  // Get profile by email
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (error || !profile) {
+    throw new Error('Admin account not found');
+  }
+
+  // Check if role is admin
+  if (profile.role !== 'admin') {
+    throw new Error('This account is not an admin account');
+  }
+
+  // Check if password matches
+  if (profile.password !== password) {
+    throw new Error('Incorrect password');
+  }
+
+  // Admin login successful - store admin session in localStorage
+  localStorage.setItem('admin_session', JSON.stringify({
+    id: profile.id,
+    email: profile.email,
+    name: profile.name,
+    role: profile.role,
+    logged_in_at: new Date().toISOString()
+  }));
+
+  return profile;
+}
+
+// ============================================================
+// GET ADMIN SESSION (with persistence check)
+// ============================================================
+function getAdminSession() {
+  try {
+    const session = localStorage.getItem('admin_session');
+    if (session) {
+      const adminData = JSON.parse(session);
+      // Session exists and is valid
+      return adminData;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error retrieving admin session:', err);
+    localStorage.removeItem('admin_session');
+    return null;
+  }
+}
+
+// ============================================================
+// ADMIN LOGOUT
+// ============================================================
+function adminLogout() {
+  localStorage.removeItem('admin_session');
+  // Force a complete page reload to ensure session is cleared
+  window.location.href = 'admin.html?logout=true';
+}
+
+// ============================================================
+// REQUIRE ADMIN AUTH — Redirect to admin login if not admin
+// ============================================================
+function requireAdminAuth() {
+  const adminSession = getAdminSession();
+  if (!adminSession) {
+    document.getElementById('admin-login-overlay').style.display = 'flex';
+    document.getElementById('admin-panel').style.display = 'none';
+    return false;
+  }
+  return adminSession;
+}
+
+// ============================================================
+// ADMIN LOGIN PAGE LOGIC
+// ============================================================
+function initAdminLoginPage() {
+  const form = document.getElementById('admin-login-form');
+  const loginOverlay = document.getElementById('admin-login-overlay');
+  const adminPanel = document.getElementById('admin-panel');
+  
+  if (!form) return;
+
+  // Form submission handler
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('admin-login-btn');
+    const alertEl = document.getElementById('admin-login-alert');
+
+    const email = document.getElementById('admin-email').value.trim();
+    const password = document.getElementById('admin-password').value;
+
+    alertEl.classList.add('hidden');
+    setLoading(btn, true);
+
+    try {
+      await adminLogin(email, password);
+      alertEl.className = 'alert alert-success';
+      alertEl.innerHTML = '✅ Admin login successful!';
+      alertEl.classList.remove('hidden');
+      
+      // Show admin panel after short delay
+      setTimeout(() => {
+        if (loginOverlay) loginOverlay.style.display = 'none';
+        if (adminPanel) adminPanel.style.display = 'block';
+        adminUser = getAdminSession();
+        loadAdminData();
+      }, 500);
+    } catch (err) {
+      alertEl.className = 'alert alert-error';
+      alertEl.innerHTML = `❌ ${err.message}`;
+      alertEl.classList.remove('hidden');
+      setLoading(btn, false);
+    }
+  });
+}
+
  
 // const { data, error } = await supabaseClient.auth.signUp({
 //   email,

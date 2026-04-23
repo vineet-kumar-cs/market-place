@@ -495,7 +495,6 @@ function renderProductDetail(product, container, user, seller = {}) {
             <div>
               <div class="seller-name">${escapeHtml(sellerName)}</div>
               <div class="seller-label">📧 ${escapeHtml(seller.email || '')}</div>
-              <div class="seller-label">📞 ${escapeHtml(seller.phone)}</div>
               ${seller.phone ? `<div class="seller-label">📞 ${escapeHtml(seller.phone)}</div>` : ''}
             </div>
           </div>

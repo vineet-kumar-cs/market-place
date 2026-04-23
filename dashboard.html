@@ -13,6 +13,7 @@
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
     <div class="navbar-actions" id="nav-actions">
+      <button onclick="toggleDarkMode()" class="dark-mode-toggle" title="Toggle Dark Mode">🌙</button>
       <a href="index.html" class="btn btn-outline btn-sm">Browse</a>
       <button onclick="signOut()" class="btn btn-primary btn-sm">Logout</button>
     </div>
@@ -38,6 +39,7 @@
         <a href="add-product.html" class="btn btn-primary">+ Add Product</a>
         <button onclick="openEditProfileModal()" class="btn btn-outline">✏️ Edit Profile</button>
         <button onclick="signOut()" class="btn btn-outline btn-sm">Logout</button>
+        <button onclick="openDeleteAccountModal()" class="btn btn-danger">🗑️ Delete Account</button>
       </div>
     </div>
 
@@ -204,6 +206,38 @@
     </div>
   </div>
 
+  <!-- ============ DELETE ACCOUNT MODAL ============ -->
+  <div class="modal-overlay hidden" id="delete-account-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>🗑️ Delete Account</h3>
+        <button class="modal-close" onclick="closeDeleteAccountModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;padding:10px 0 20px;">
+          <div style="font-size:3rem;margin-bottom:14px;">⚠️</div>
+          <p style="font-size:1.05rem;font-weight:600;margin-bottom:8px;color:var(--danger);">Delete Your Account?</p>
+          <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px;">This action <strong>cannot be undone</strong>. You will lose:</p>
+          <ul style="text-align:left;color:var(--text-muted);font-size:0.9rem;margin:0 0 16px 24px;">
+            <li>Your account and all profile information</li>
+            <li>All your product listings</li>
+            <li>All product images</li>
+            <li>Access to your account</li>
+          </ul>
+          <div class="form-group">
+            <label for="delete-account-confirm">Type your email to confirm:</label>
+            <input type="email" id="delete-account-confirm" class="form-control" placeholder="Confirm your email"></input>
+          </div>
+          <div id="delete-account-alert" class="alert hidden" style="margin-bottom:16px;"></div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="closeDeleteAccountModal()" style="flex:1;">Cancel</button>
+          <button class="btn btn-danger" id="confirm-delete-account-btn" style="flex:1;">Yes, Delete Everything</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ DELETE CONFIRM MODAL ============ -->
   <div class="modal-overlay hidden" id="delete-modal">
     <div class="modal">
@@ -227,6 +261,7 @@
 
   <!-- JS -->
   <script src="js/supabase.js"></script>
+  <script src="js/darkmode.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/products.js"></script>
   <script>
@@ -594,6 +629,75 @@
         await loadUserProducts();
       } catch (err) {
         showToast('Error: ' + err.message, 'error');
+        setLoading(btn, false);
+      }
+    });
+
+    // ---- DELETE ACCOUNT MODAL ----
+    window.openDeleteAccountModal = () => {
+      document.getElementById('delete-account-confirm').value = '';
+      document.getElementById('delete-account-alert').classList.add('hidden');
+      document.getElementById('delete-account-modal').classList.remove('hidden');
+    };
+
+    window.closeDeleteAccountModal = () => {
+      document.getElementById('delete-account-modal').classList.add('hidden');
+      document.getElementById('delete-account-confirm').value = '';
+      document.getElementById('delete-account-alert').classList.add('hidden');
+    };
+
+    document.getElementById('confirm-delete-account-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('confirm-delete-account-btn');
+      const alertEl = document.getElementById('delete-account-alert');
+      const emailInput = document.getElementById('delete-account-confirm').value.trim();
+
+      if (emailInput !== currentUser.email) {
+        alertEl.className = 'alert alert-error';
+        alertEl.innerHTML = '❌ Email does not match. Please try again.';
+        alertEl.classList.remove('hidden');
+        return;
+      }
+
+      alertEl.classList.add('hidden');
+      setLoading(btn, true);
+
+      try {
+        // Delete all products and their images
+        for (const product of userProducts) {
+          const imagesToDelete = [];
+          if (product.image_url_1) imagesToDelete.push(product.image_url_1);
+          if (product.image_url_2) imagesToDelete.push(product.image_url_2);
+          
+          // Delete images from storage
+          for (const url of imagesToDelete) {
+            try {
+              const path = url.split('/storage/v1/object/public/product-images/')[1];
+              if (path) {
+                await supabaseClient.storage.from('product-images').remove([path]);
+              }
+            } catch (e) {
+              console.warn('Could not delete image:', e);
+            }
+          }
+          
+          // Delete product record
+          await supabaseClient.from('products').delete().eq('id', product.id);
+        }
+
+        // Delete user profile
+        await supabaseClient.from('profiles').delete().eq('id', currentUser.id);
+
+        showToast('Account deleted successfully.', 'success');
+        setTimeout(() => {
+          // Sign out and redirect
+          supabaseClient.auth.signOut().then(() => {
+            window.location.href = 'index.html';
+          });
+        }, 1000);
+      } catch (err) {
+        alertEl.className = 'alert alert-error';
+        alertEl.innerHTML = `❌ Error: ${err.message}`;
+        alertEl.classList.remove('hidden');
         setLoading(btn, false);
       }
     });

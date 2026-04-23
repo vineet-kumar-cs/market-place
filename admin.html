@@ -65,6 +65,7 @@
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
     <div class="navbar-actions" id="nav-actions">
+      <button onclick="toggleDarkMode()" class="dark-mode-toggle" title="Toggle Dark Mode">🌙</button>
       <span class="admin-badge">ADMIN</span>
       <a href="index.html" class="btn btn-outline btn-sm">Back to Site</a>
     </div>
@@ -86,7 +87,17 @@
         </div>
         <div class="form-group">
           <label for="admin-password">Password</label>
-          <input type="password" id="admin-password" class="form-control" placeholder="Admin password" required>
+          <div style="position:relative;">
+            <input type="password" id="admin-password" class="form-control" placeholder="Admin password" required>
+            <button 
+              type="button" 
+              class="password-toggle" 
+              onclick="togglePasswordVisibility('admin-password', this)"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;font-size:1.2rem;padding:4px;"
+            >
+              👁️
+            </button>
+          </div>
         </div>
         <button type="submit" id="admin-login-btn" class="btn btn-dark btn-full btn-lg">
           Access Admin Panel
@@ -97,9 +108,12 @@
         <a href="index.html" style="color:var(--text-muted);font-size:0.88rem;">← Back to Site</a>
       </div>
 
-      <div class="alert alert-info" style="margin-top:20px;font-size:0.82rem;">
-        <strong>Note:</strong> Admin access is granted via Supabase. Add <code>is_admin: true</code> to the user's metadata in Supabase Auth dashboard.
-      </div>
+      <!-- <div class="alert alert-info" style="margin-top:20px;font-size:0.82rem;">
+        <strong>Default Credentials:</strong><br>
+        Email: <code>admin@marketplace.com</code><br>
+        Password: <code>admin123</code><br>
+        <small>(Change these in Admin Settings after login)</small>
+      </div> -->
     </div>
   </div>
 
@@ -116,6 +130,7 @@
         <p>Manage all users, products, and platform data</p>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="openAdminSettingsModal()" class="btn btn-outline btn-sm">⚙️ Settings</button>
         <button onclick="refreshData()" class="btn btn-outline btn-sm">🔄 Refresh</button>
         <button onclick="adminLogout()" class="btn btn-danger btn-sm">Logout</button>
       </div>
@@ -205,6 +220,7 @@
               <th>Phone</th>
               <th>Joined</th>
               <th>Products</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="users-tbody"></tbody>
@@ -212,6 +228,96 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ============ ADMIN SETTINGS MODAL ============ -->
+  <div class="modal-overlay hidden" id="admin-settings-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>⚙️ Admin Settings</h3>
+        <button class="modal-close" onclick="closeAdminSettingsModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="admin-settings-alert" class="alert hidden"></div>
+        <form id="admin-settings-form">
+          <div class="form-group">
+            <label for="admin-email-setting">Admin Email</label>
+            <input type="email" id="admin-email-setting" class="form-control" required>
+            <div class="form-hint">Used for admin login</div>
+          </div>
+          <div class="form-group">
+            <label for="admin-password-setting">Admin Password</label>
+            <input type="password" id="admin-password-setting" class="form-control" required>
+            <div class="form-hint">Minimum 6 characters</div>
+          </div>
+          <div class="form-group">
+            <label for="admin-password-confirm-setting">Confirm Password</label>
+            <input type="password" id="admin-password-confirm-setting" class="form-control" required>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button type="button" class="btn btn-ghost" onclick="closeAdminSettingsModal()" style="flex:1;">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="flex:2;">Save Settings</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DELETE USER MODAL (Admin) ============ -->
+  <div class="modal-overlay hidden" id="admin-delete-user-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>🗑️ Delete User Account</h3>
+        <button class="modal-close" onclick="closeAdminDeleteUserModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;padding:10px 0 20px;">
+          <div style="font-size:3rem;margin-bottom:14px;">⚠️</div>
+          <p style="font-size:1.05rem;font-weight:600;margin-bottom:8px;color:var(--danger);">Delete "<span id="delete-user-name"></span>"?</p>
+          <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px;">This will permanently delete <strong>ALL data</strong>:</p>
+          <ul style="text-align:left;color:var(--text-muted);font-size:0.9rem;margin:0 0 16px 24px;">
+            <li>✅ User account and complete profile</li>
+            <li>✅ <span id="delete-user-products-count">0</span> product listings</li>
+            <li>✅ All product images from storage</li>
+            <li>✅ All user data from database</li>
+          </ul>
+          <p style="color:var(--danger);font-weight:600;font-size:0.95rem;background:#ffe0e0;padding:10px;border-radius:6px;">⚠️ This action CANNOT be undone!</p>
+        </div>
+        <div id="admin-delete-user-alert" class="alert hidden" style="margin-bottom:16px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="closeAdminDeleteUserModal()" style="flex:1;">Cancel</button>
+          <button class="btn btn-danger" id="confirm-admin-delete-user-btn" style="flex:1;">Yes, Delete Everything</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DELETE PRODUCT MODAL (Admin) ============ -->
+  <div class="modal-overlay hidden" id="admin-delete-product-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>🗑️ Delete Product</h3>
+        <button class="modal-close" onclick="closeAdminDeleteProductModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;padding:10px 0 20px;">
+          <div style="font-size:3rem;margin-bottom:14px;">⚠️</div>
+          <p style="font-size:1.05rem;font-weight:600;margin-bottom:8px;color:var(--danger);">Delete "<span id="delete-product-title"></span>"?</p>
+          <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px;">This will permanently delete:</p>
+          <ul style="text-align:left;color:var(--text-muted);font-size:0.9rem;margin:0 0 16px 24px;">
+            <li>✅ Product listing from database</li>
+            <li>✅ All product images from storage</li>
+            <li>✅ All product data</li>
+          </ul>
+          <p style="color:var(--danger);font-weight:600;font-size:0.95rem;background:#ffe0e0;padding:10px;border-radius:6px;">⚠️ This action CANNOT be undone!</p>
+        </div>
+        <div id="admin-delete-product-alert" class="alert hidden" style="margin-bottom:16px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="closeAdminDeleteProductModal()" style="flex:1;">Cancel</button>
+          <button class="btn btn-danger" id="confirm-admin-delete-product-btn" style="flex:1;">Yes, Delete Product</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ============ EDIT PRODUCT MODAL (Admin) ============ -->
@@ -249,56 +355,14 @@
     </div>
   </div>
 
-  <!-- JS -->
   <script src="js/supabase.js"></script>
+  <script src="js/darkmode.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/products.js"></script>
   <script>
     let adminUser = null;
     let allProductsAdmin = [];
     let allUsersAdmin = [];
-
-    // ================================================================
-    // ADMIN LOGIN LOGIC
-    // ================================================================
-    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('admin-login-btn');
-      const alertEl = document.getElementById('admin-login-alert');
-      const email = document.getElementById('admin-email').value.trim();
-      const password = document.getElementById('admin-password').value;
-
-      alertEl.classList.add('hidden');
-      setLoading(btn, true);
-
-      try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-
-        const user = data.user;
-
-        // Check if user has admin role in metadata
-        const isAdmin = user.user_metadata?.is_admin === true ||
-                        user.email === 'whitegriffin.respact.com'; // Fallback: hardcoded admin email
-
-        if (!isAdmin) {
-          await supabaseClient.auth.signOut();
-          throw new Error('Access denied. You do not have admin privileges.');
-        }
-
-        adminUser = user;
-        document.getElementById('admin-login-overlay').style.display = 'none';
-        document.getElementById('admin-panel').style.display = 'block';
-        showToast('Admin access granted!', 'success');
-        loadAdminData();
-
-      } catch (err) {
-        alertEl.className = 'alert alert-error';
-        alertEl.innerHTML = `❌ ${err.message}`;
-        alertEl.classList.remove('hidden');
-        setLoading(btn, false);
-      }
-    });
 
     // ================================================================
     // LOAD ALL DATA
@@ -320,14 +384,32 @@
       tableWrap.style.display = 'none';
 
       try {
-        // Admin query: get ALL products with seller info
+        // Fetch all products (without relationship)
         const { data, error } = await supabaseClient
           .from('products')
-          .select(`*, profiles(name, email, phone)`)
+          .select('*')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        allProductsAdmin = data || [];
+        
+        let products = data || [];
+
+        // Fetch seller profiles for each product
+        for (let product of products) {
+          if (product.user_id) {
+            const { data: profileData } = await supabaseClient
+              .from('profiles')
+              .select('name, email, phone')
+              .eq('id', product.user_id)
+              .single();
+            
+            product.profiles = profileData || { name: 'Unknown', email: '', phone: '' };
+          } else {
+            product.profiles = { name: 'Unknown', email: '', phone: '' };
+          }
+        }
+
+        allProductsAdmin = products;
 
         // Update stats
         document.getElementById('stat-products').textContent = allProductsAdmin.length;
@@ -416,7 +498,7 @@
             <td>
               <div class="table-actions">
                 <button class="btn btn-ghost btn-sm" onclick="openAdminEditModal('${product.id}')">✏️</button>
-                <button class="btn btn-danger btn-sm" onclick="adminDeleteProduct('${product.id}', '${escapeHtml(product.title)}', ['${product.image_url_1 || ''}','${product.image_url_2 || ''}'])">🗑️</button>
+                <button class="btn btn-danger btn-sm" onclick="openAdminDeleteProductModal('${product.id}')">🗑️</button>
               </div>
             </td>
           </tr>
@@ -427,7 +509,7 @@
     function renderUsersTable(users) {
       const tbody = document.getElementById('users-tbody');
       if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="no-results">No users found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="no-results">No users found.</td></tr>';
         return;
       }
 
@@ -450,6 +532,11 @@
               <span style="background:var(--bg);border:1.5px solid var(--border);border-radius:20px;padding:3px 12px;font-size:0.82rem;font-weight:600;">
                 ${productCount} listings
               </span>
+            </td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-danger btn-sm" onclick="openAdminDeleteUserModal('${user.id}', '${escapeHtml(name)}')">🗑️</button>
+              </div>
             </td>
           </tr>
         `;
@@ -488,6 +575,30 @@
 
       document.getElementById('tab-products').style.display = tab === 'products' ? 'block' : 'none';
       document.getElementById('tab-users').style.display = tab === 'users' ? 'block' : 'none';
+    }
+
+    // ================================================================
+    // INITIALIZE ADMIN PANEL
+    // ================================================================
+    function initAdminPanel() {
+      const loginOverlay = document.getElementById('admin-login-overlay');
+      const adminPanel = document.getElementById('admin-panel');
+
+      // Clear admin session on page load - force re-login on every refresh
+      localStorage.removeItem('admin_session');
+
+      // Always show login form on page refresh
+      loginOverlay.style.display = 'flex';
+      adminPanel.style.display = 'none';
+      initAdminLoginPage();
+    }
+
+    // Run initialization when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAdminPanel);
+    } else {
+      // DOM is already loaded - defer with setTimeout to ensure all functions are defined
+      setTimeout(initAdminPanel, 0);
     }
 
     // ================================================================
@@ -535,25 +646,163 @@
     });
 
     // ================================================================
-    // ADMIN DELETE PRODUCT
+    // ADMIN DELETE PRODUCT (Modal-based with warning)
     // ================================================================
-    window.adminDeleteProduct = async (productId, title, images) => {
-      if (!confirm(`Are you sure you want to delete "${title}"? This cannot be undone.`)) return;
+    let deleteTargetProductId = null;
+    let deleteTargetProductTitle = null;
+    let deleteTargetProductImages = [];
 
-      try {
-        await deleteProduct(productId, images.filter(Boolean));
-        showToast('Product deleted.', 'success');
-        await loadAdminProducts();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
+    window.openAdminDeleteProductModal = (productId) => {
+      const product = allProductsAdmin.find(p => p.id === productId);
+      if (!product) {
+        showToast('Product not found', 'error');
+        return;
       }
+
+      deleteTargetProductId = product.id;
+      deleteTargetProductTitle = product.title;
+      deleteTargetProductImages = [product.image_url_1, product.image_url_2].filter(Boolean);
+
+      document.getElementById('delete-product-title').textContent = product.title;
+      document.getElementById('admin-delete-product-alert').classList.add('hidden');
+      document.getElementById('admin-delete-product-modal').classList.remove('hidden');
     };
+
+    window.closeAdminDeleteProductModal = () => {
+      document.getElementById('admin-delete-product-modal').classList.add('hidden');
+      deleteTargetProductId = null;
+      deleteTargetProductTitle = null;
+      deleteTargetProductImages = [];
+    };
+
+    const confirmDeleteProductBtn = document.getElementById('confirm-admin-delete-product-btn');
+    if (confirmDeleteProductBtn) {
+      confirmDeleteProductBtn.addEventListener('click', async () => {
+        if (!deleteTargetProductId) return;
+        const btn = document.getElementById('confirm-admin-delete-product-btn');
+
+        setLoading(btn, true);
+
+        try {
+          // Delete images
+          for (const url of deleteTargetProductImages) {
+            if (url) {
+              try {
+                const path = url.split('/storage/v1/object/public/product-images/')[1];
+                if (path) {
+                  await supabaseClient.storage.from('product-images').remove([path]);
+                }
+              } catch (e) {
+                console.warn('Could not delete image:', e);
+              }
+            }
+          }
+          
+
+          // Delete product - EXACT SAME CODE AS DASHBOARD
+          console.log('Attempting to delete product ID:', deleteTargetProductId);
+          const { data, error } = await supabaseClient.from('products').delete().eq('id', deleteTargetProductId).select();
+          console.log('Delete response - Error:', error, 'Data:', data);
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+          
+          closeAdminDeleteProductModal();
+          showToast('Product deleted.', 'success');
+          await loadAdminProducts();
+        } catch (err) {
+          console.error('Full error:', err);
+          showToast('Error: ' + err.message, 'error');
+          setLoading(btn, false);
+        }
+      });
+    }
+
+    // ================================================================
+    // ADMIN DELETE USER ACCOUNT (Modal-based with warning)
+    // ================================================================
+    let deleteTargetUserId = null;
+    let deleteTargetUserName = null;
+
+    window.openAdminDeleteUserModal = (userId, userName) => {
+      deleteTargetUserId = userId;
+      deleteTargetUserName = userName;
+      const productCount = allProductsAdmin.filter(p => p.user_id === userId).length;
+      
+      document.getElementById('delete-user-name').textContent = userName;
+      document.getElementById('delete-user-products-count').textContent = productCount;
+      document.getElementById('admin-delete-user-alert').classList.add('hidden');
+      document.getElementById('admin-delete-user-modal').classList.remove('hidden');
+    };
+
+    window.closeAdminDeleteUserModal = () => {
+      document.getElementById('admin-delete-user-modal').classList.add('hidden');
+      deleteTargetUserId = null;
+      deleteTargetUserName = null;
+    };
+
+    const confirmDeleteUserBtn = document.getElementById('confirm-admin-delete-user-btn');
+    if (confirmDeleteUserBtn) {
+      confirmDeleteUserBtn.addEventListener('click', async () => {
+        if (!deleteTargetUserId) return;
+        const btn = document.getElementById('confirm-admin-delete-user-btn');
+
+        setLoading(btn, true);
+
+        try {
+          // Get all user's products - EXACT SAME CODE AS DASHBOARD
+          const { data: userProducts } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('user_id', deleteTargetUserId);
+
+          // Delete all products and images - EXACT SAME CODE AS DASHBOARD
+          for (const product of (userProducts || [])) {
+            const imagesToDelete = [];
+            if (product.image_url_1) imagesToDelete.push(product.image_url_1);
+            if (product.image_url_2) imagesToDelete.push(product.image_url_2);
+            
+            for (const url of imagesToDelete) {
+              try {
+                const path = url.split('/storage/v1/object/public/product-images/')[1];
+                if (path) {
+                  await supabaseClient.storage.from('product-images').remove([path]);
+                }
+              } catch (e) {
+                console.warn('Could not delete image:', e);
+              }
+            }
+            
+            await supabaseClient.from('products').delete().eq('id', product.id);
+          }
+
+          // Delete user profile - EXACT SAME CODE AS DASHBOARD
+          console.log('Attempting to delete user profile ID:', deleteTargetUserId);
+          const { data: profileData, error: profileError } = await supabaseClient.from('profiles').delete().eq('id', deleteTargetUserId).select();
+          console.log('Profile delete response - Error:', profileError, 'Data:', profileData);
+          
+          if (profileError) {
+            throw new Error(profileError.message);
+          }
+
+          closeAdminDeleteUserModal();
+          showToast('User deleted.', 'success');
+          await Promise.all([loadAdminUsers(), loadAdminProducts()]);
+        } catch (err) {
+          console.error('Full error:', err);
+          showToast('Error: ' + err.message, 'error');
+          setLoading(btn, false);
+        }
+      });
+    }
 
     // ================================================================
     // ADMIN LOGOUT
     // ================================================================
     async function adminLogout() {
-      await supabaseClient.auth.signOut();
+      adminUser = null;
+      localStorage.removeItem('admin_session');
       document.getElementById('admin-panel').style.display = 'none';
       document.getElementById('admin-login-overlay').style.display = 'flex';
       document.getElementById('admin-email').value = '';
@@ -561,21 +810,105 @@
       showToast('Logged out from admin panel.', 'default');
     }
 
+    // ================================================================
+    // ADMIN SETTINGS MODAL
+    // ================================================================
+    function openAdminSettingsModal() {
+      const currentAdmin = getAdminSession();
+      document.getElementById('admin-email-setting').value = currentAdmin?.email || '';
+      document.getElementById('admin-password-setting').value = '';
+      document.getElementById('admin-password-confirm-setting').value = '';
+      document.getElementById('admin-settings-alert').classList.add('hidden');
+      document.getElementById('admin-settings-modal').classList.remove('hidden');
+    }
+
+    function closeAdminSettingsModal() {
+      document.getElementById('admin-settings-modal').classList.add('hidden');
+    }
+
+    document.getElementById('admin-settings-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const alertEl = document.getElementById('admin-settings-alert');
+      const password = document.getElementById('admin-password-setting').value;
+      const confirm = document.getElementById('admin-password-confirm-setting').value;
+      const currentAdmin = getAdminSession();
+
+      // Validation
+      if (!currentAdmin) {
+        alertEl.className = 'alert alert-error';
+        alertEl.innerHTML = '❌ Admin session not found.';
+        alertEl.classList.remove('hidden');
+        return;
+      }
+
+      // If password is not empty, validate it
+      if (password) {
+        if (password.length < 6) {
+          alertEl.className = 'alert alert-error';
+          alertEl.innerHTML = '❌ Password must be at least 6 characters.';
+          alertEl.classList.remove('hidden');
+          return;
+        }
+
+        if (password !== confirm) {
+          alertEl.className = 'alert alert-error';
+          alertEl.innerHTML = '❌ Passwords do not match.';
+          alertEl.classList.remove('hidden');
+          return;
+        }
+
+        // Update password in database
+        try {
+          await setAdminPassword(currentAdmin.id, password);
+          alertEl.className = 'alert alert-success';
+          alertEl.innerHTML = '✅ Admin password updated successfully!';
+          alertEl.classList.remove('hidden');
+          showToast('Admin password saved!', 'success');
+          setTimeout(() => closeAdminSettingsModal(), 1500);
+        } catch (err) {
+          alertEl.className = 'alert alert-error';
+          alertEl.innerHTML = `❌ Error: ${err.message}`;
+          alertEl.classList.remove('hidden');
+        }
+      } else {
+        alertEl.className = 'alert alert-info';
+        alertEl.innerHTML = 'ℹ️ No changes made.';
+        alertEl.classList.remove('hidden');
+      }
+      }
+    );
+
+    // Close modals on overlay click
+    document.getElementById('admin-settings-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeAdminSettingsModal();
+    });
+
+    document.getElementById('admin-delete-user-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeAdminDeleteUserModal();
+    });
+
+    document.getElementById('admin-delete-product-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeAdminDeleteProductModal();
+    });
+
     // Close modal on overlay click
     document.getElementById('admin-edit-modal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeAdminEditModal();
     });
 
-    // Check if already logged in as admin
-    (async () => {
-      const user = await getSession();
-      if (user && user.user_metadata?.is_admin === true) {
-        adminUser = user;
-        document.getElementById('admin-login-overlay').style.display = 'none';
-        document.getElementById('admin-panel').style.display = 'block';
-        loadAdminData();
+    // ================================================================
+    // TOGGLE PASSWORD VISIBILITY
+    // ================================================================
+    function togglePasswordVisibility(fieldId, btn) {
+      const field = document.getElementById(fieldId);
+      if (field.type === 'password') {
+        field.type = 'text';
+        btn.textContent = '🙈';
+      } else {
+        field.type = 'password';
+        btn.textContent = '👁️';
       }
-    })();
+    }
   </script>
 </body>
 </html>
