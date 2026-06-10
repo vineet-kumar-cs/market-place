@@ -13,7 +13,11 @@
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
     <div class="navbar-actions" id="nav-actions">
+<<<<<<< HEAD
       <button onclick="toggleDarkMode()" class="theme-toggle" title="Toggle Dark Mode">🌙</button>
+=======
+      <button onclick="toggleDarkMode()" class="dark-mode-toggle" title="Toggle Dark Mode">🌙</button>
+>>>>>>> 2860d2281a18bc97a7d9f4a7991dbbe2a671dbfc
       <a href="index.html" class="btn btn-outline btn-sm">Browse</a>
       <button onclick="signOut()" class="btn btn-primary btn-sm">Logout</button>
     </div>
@@ -75,8 +79,13 @@
           
           <!-- Name -->
           <div class="form-group">
+<<<<<<< HEAD
             <label for="profile-name-input">Full Name <span style="color:var(--danger)">*</span></label>
             <input type="text" id="profile-name-input" class="form-control" placeholder="Your full name" required>
+=======
+            <label for="profile-name">Full Name <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="profile-name" class="form-control" placeholder="Your full name" required>
+>>>>>>> 2860d2281a18bc97a7d9f4a7991dbbe2a671dbfc
           </div>
 
           <!-- Phone -->
@@ -512,7 +521,11 @@
     window.openEditProfileModal = async () => {
       const profile = await getUserProfile(currentUser.id);
       
+<<<<<<< HEAD
       document.getElementById('profile-name-input').value = profile?.name || '';
+=======
+      document.getElementById('profile-name').value = profile?.name || '';
+>>>>>>> 2860d2281a18bc97a7d9f4a7991dbbe2a671dbfc
       document.getElementById('profile-phone').value = profile?.phone || '';
       document.getElementById('profile-email-input').value = currentUser.email || '';
       document.getElementById('profile-current-password').value = '';
@@ -532,7 +545,11 @@
       const btn = document.getElementById('profile-submit-btn');
       const alertEl = document.getElementById('profile-alert');
 
+<<<<<<< HEAD
       const name = document.getElementById('profile-name-input').value.trim();
+=======
+      const name = document.getElementById('profile-name').value.trim();
+>>>>>>> 2860d2281a18bc97a7d9f4a7991dbbe2a671dbfc
       const phone = document.getElementById('profile-phone').value.trim();
       const email = document.getElementById('profile-email-input').value.trim();
       const currentPassword = document.getElementById('profile-current-password').value;

@@ -3,10 +3,13 @@
 
 ---
 
+<<<<<<< HEAD
   <!-- ((auth.uid() = id) OR (auth.uid() IS NOT NULL)) -->
 
   <!-- AIzaSyBD_fQsmobLf09e0tebyyhLZqA1iBPZbnQ -->
 
+=======
+>>>>>>> 2860d2281a18bc97a7d9f4a7991dbbe2a671dbfc
 ## 📁 FILE STRUCTURE
 
 ```
