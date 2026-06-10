@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — MarketPlace</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
+    <div class="navbar-actions">
+      <button onclick="toggleDarkMode()" class="theme-toggle" title="Toggle Dark Mode">🌙</button>
+      <a href="signup.html" class="btn btn-outline btn-sm">Sign Up</a>
+    </div>
+  </nav>
+
+  <div class="auth-page">
+    <div class="auth-card fade-in">
+
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="brand">Market<span class="accent">Place</span></div>
+        <p>Welcome back! Sign in to continue.</p>
+      </div>
+
+      <!-- Alert Box -->
+      <div id="login-alert" class="alert hidden"></div>
+
+      <!-- Login Form -->
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input 
+            type="email" 
+            id="email" 
+            class="form-control" 
+            placeholder="you@example.com" 
+            required
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            class="form-control" 
+            placeholder="Enter your password" 
+            required
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button 
+          type="submit" 
+          id="login-btn" 
+          class="btn btn-primary btn-full btn-lg" 
+          style="margin-top:8px;"
+        >
+          Login
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div style="display:flex;align-items:center;gap:12px;margin:20px 0;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="color:var(--text-muted);font-size:0.83rem;">OR</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+
+      <!-- Admin Login -->
+      <a href="admin.html" class="btn btn-ghost btn-full" style="justify-content:center;">
+        🔐 Login as Admin
+      </a>
+
+      <!-- Footer Links -->
+      <div class="auth-footer">
+        <p>Don't have an account? <a href="signup.html">Sign Up Free</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/darkmode.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    initLoginPage();
+  </script>
+</body>
+</html>

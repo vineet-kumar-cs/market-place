@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — MarketPlace</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">Market<span>Place</span></a>
+    <div class="navbar-actions">
+      <button onclick="toggleDarkMode()" class="theme-toggle" title="Toggle Dark Mode">🌙</button>
+      <a href="login.html" class="btn btn-outline btn-sm">Login</a>
+    </div>
+  </nav>
+
+  <div class="auth-page">
+    <div class="auth-card fade-in">
+
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="brand">Market<span class="accent">Place</span></div>
+        <p>Create your free account and start selling!</p>
+      </div>
+
+      <!-- Alert Box -->
+      <div id="signup-alert" class="alert hidden"></div>
+
+      <!-- Signup Form -->
+      <form id="signup-form" novalidate>
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input 
+            type="text" 
+            id="name" 
+            class="form-control" 
+            placeholder="Rahul Sharma" 
+            autocomplete="name"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address <span style="color:var(--danger)">*</span></label>
+          <input 
+            type="email" 
+            id="email" 
+            class="form-control" 
+            placeholder="you@example.com" 
+            required
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" class="form-control" placeholder="+91 " autocomplete="tel" pattern="[0-9]{10}">
+          <div class="form-hint">Optional - used for account recovery and seller contact</div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password <span style="color:var(--danger)">*</span></label>
+          <div style="position:relative;">
+            <input 
+              type="password" 
+              id="password" 
+              class="form-control" 
+              placeholder="Minimum 6 characters" 
+              required
+              autocomplete="new-password"
+              minlength="6"
+            >
+            <button 
+              type="button" 
+              class="password-toggle" 
+              onclick="togglePasswordVisibility('password', this)"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;font-size:1.2rem;padding:4px;"
+            >
+              👁️
+            </button>
+          </div>
+          <div class="form-hint">Must be at least 6 characters long</div>
+        </div>
+
+        <!-- ph number  -->
+
+        <!-- <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input 
+            type="tel" 
+            id="phone" 
+            class="form-control" 
+            placeholder="+91 " 
+            autocomplete="tel"
+            pattern="[0-9]{10}"
+          >
+        <div class="form-hint">Optional - used for account recovery and seller contact</div> -->
+
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password <span style="color:var(--danger)">*</span></label>
+          <div style="position:relative;">
+            <input 
+              type="password" 
+              id="confirm-password" 
+              class="form-control" 
+              placeholder="Repeat your password" 
+              required
+              autocomplete="new-password"
+            >
+            <button 
+              type="button" 
+              class="password-toggle" 
+              onclick="togglePasswordVisibility('confirm-password', this)"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;font-size:1.2rem;padding:4px;"
+            >
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:16px;">
+          By signing up, you agree to our <a href="#" style="color:var(--primary);">Terms of Service</a> and <a href="#" style="color:var(--primary);">Privacy Policy</a>.
+        </div>
+
+        <button 
+          type="submit" 
+          id="signup-btn" 
+          class="btn btn-primary btn-full btn-lg"
+        >
+          Create Account
+        </button>
+      </form>
+
+      <!-- Footer Links -->
+      <div class="auth-footer">
+        <p>Already have an account? <a href="login.html">Login here</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/darkmode.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    initSignupPage();
+
+    // Toggle Password Visibility
+    function togglePasswordVisibility(fieldId, btn) {
+      const field = document.getElementById(fieldId);
+      if (field.type === 'password') {
+        field.type = 'text';
+        btn.textContent = '🙈';
+      } else {
+        field.type = 'password';
+        btn.textContent = '👁️';
+      }
+    }
+  </script>
+</body>
+</html>
