@@ -521,11 +521,7 @@
     window.openEditProfileModal = async () => {
       const profile = await getUserProfile(currentUser.id);
       
-<<<<<<< HEAD
       document.getElementById('profile-name-input').value = profile?.name || '';
-=======
-      document.getElementById('profile-name').value = profile?.name || '';
->>>>>>> 2860d2281a18bc97a7d9f4a7991dbbe2a671dbfc
       document.getElementById('profile-phone').value = profile?.phone || '';
       document.getElementById('profile-email-input').value = currentUser.email || '';
       document.getElementById('profile-current-password').value = '';
@@ -545,11 +541,7 @@
       const btn = document.getElementById('profile-submit-btn');
       const alertEl = document.getElementById('profile-alert');
 
-<<<<<<< HEAD
       const name = document.getElementById('profile-name-input').value.trim();
-=======
-      const name = document.getElementById('profile-name').value.trim();
->>>>>>> 2860d2281a18bc97a7d9f4a7991dbbe2a671dbfc
       const phone = document.getElementById('profile-phone').value.trim();
       const email = document.getElementById('profile-email-input').value.trim();
       const currentPassword = document.getElementById('profile-current-password').value;
