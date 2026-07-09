@@ -262,6 +262,7 @@ function initSignupPage() {
     setLoading(btn, true);
 
     try {
+      // alertEl.innerHTML = `❌ ${err.message}`;
       await signUp(email, password, name, phone);
       alertEl.className = 'alert alert-success';
       alertEl.innerHTML = '✅ Account created! Please check your email to verify, then <a href="login.html">login here</a>.';

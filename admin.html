@@ -296,7 +296,7 @@
   <div class="modal-overlay hidden" id="admin-delete-product-modal">
     <div class="modal">
       <div class="modal-header">
-        <h3>🗑️ Delete Product</h3>
+        <h3>Delete Product</h3>
         <button class="modal-close" onclick="closeAdminDeleteProductModal()">✕</button>
       </div>
       <div class="modal-body">
@@ -324,7 +324,7 @@
   <div class="modal-overlay hidden" id="admin-edit-modal">
     <div class="modal">
       <div class="modal-header">
-        <h3>✏️ Edit Product</h3>
+        <h3>Edit Product</h3>
         <button class="modal-close" onclick="closeAdminEditModal()">✕</button>
       </div>
       <div class="modal-body">
@@ -903,10 +903,10 @@
       const field = document.getElementById(fieldId);
       if (field.type === 'password') {
         field.type = 'text';
-        btn.textContent = '🙈';
+        btn.textContent = '';
       } else {
         field.type = 'password';
-        btn.textContent = '👁️';
+        btn.textContent = 'see';
       }
     }
   </script>
