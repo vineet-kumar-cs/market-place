@@ -1,12 +1,4 @@
-// ============================================================
-// js/supabase.js — Supabase Client Initialization
-// ============================================================
-// HOW TO SET UP:
-//   1. Go to https://supabase.com → New Project
-//   2. After project is created, go to Settings → API
-//   3. Copy your "Project URL" and "anon public" key
-//   4. Replace the values below with your credentials
-// ============================================================
+
 
 const SUPABASE_URL = 'https://bcbsvmmhjelqaeawepml.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjYnN2bW1oamVscWFlYXdlcG1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNjYwOTYsImV4cCI6MjA5MTk0MjA5Nn0.pXJheXJIFGssUz59Igh_vSooym_5OLi1o9gGeXbTAT4';
@@ -71,9 +63,7 @@ function getInitials(text) {
     .map(p => p[0].toUpperCase()).join('');
 }
 
-// ============================================================
-// UTILITY: Show/hide loading
-// ============================================================
+
 function setLoading(btnEl, isLoading, originalText = '') {
   if (!btnEl) return;
   if (isLoading) {
@@ -86,9 +76,6 @@ function setLoading(btnEl, isLoading, originalText = '') {
   }
 }
 
-// ============================================================
-// UTILITY: Show error on form field
-// ============================================================
 function showFieldError(fieldId, message) {
   const field = document.getElementById(fieldId);
   if (!field) return;

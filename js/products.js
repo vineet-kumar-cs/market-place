@@ -1,20 +1,4 @@
-// ============================================================
-// js/products.js — Product CRUD & Image Upload
-// ============================================================
 
-// const user = await supabase.auth.getUser();
-
-// await supabase.from("products").insert([
-//   {
-//     name: "Laptop",
-//     price: 40000,
-//     user_id: user.data.user.id, // 🔥 important
-//   },
-// ]);
-
-// ============================================================
-// FETCH SELLER PROFILE by USER_ID
-// ============================================================
 async function getSellerProfile(userId) {
   const { data, error } = await supabaseClient
     .from('profiles')
@@ -26,9 +10,7 @@ async function getSellerProfile(userId) {
   return data || { name: 'Unknown Seller', email: '', phone: '' };
 }
 
-// ============================================================
-// FETCH ALL PRODUCTS (with optional category filter & search)
-// ============================================================
+
 async function getAllProducts(category = '', searchTerm = '') {
   let query = supabaseClient
     .from('products')

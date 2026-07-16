@@ -1,19 +1,10 @@
-// ============================================================
-// js/auth.js — Authentication Logic (Supabase Auth)
-// ============================================================
 
-// ============================================================
-// CHECK SESSION — Call this on every page load
-// Returns: user object or null
-// ============================================================
 async function getSession() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   return session ? session.user : null;
 }
 
-// ============================================================
-// SIGN UP — Creates new user with email + password
-// ============================================================
+
 async function signUp(email, password, name = '', phone = '') {
   const { data, error: authError } = await supabaseClient.auth.signUp({
     email,
@@ -32,8 +23,8 @@ async function signUp(email, password, name = '', phone = '') {
       name: name || '',
       email: email,
       phone: phone || '',
-      password: password, // Note: Storing password in profiles is usually not recommended for security
-      role: 'user', // Default role for new users
+      password: password, 
+      role: 'user',
       created_at: new Date().toISOString()
     });
 
@@ -46,9 +37,7 @@ async function signUp(email, password, name = '', phone = '') {
   return data;
 }
 
-// ============================================================
-// SIGN IN — Login with email + password
-// ============================================================
+
 async function signIn(email, password) {
   const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
@@ -59,18 +48,14 @@ async function signIn(email, password) {
   return data;
 }
 
-// ============================================================
-// SIGN OUT — Logout current user
-// ============================================================
+
 async function signOut() {
   const { error } = await supabaseClient.auth.signOut();
   if (error) throw error;
   window.location.href = 'index.html';
 }
 
-// ============================================================
-// GET USER PROFILE from profiles table
-// ============================================================
+
 async function getUserProfile(userId) {
   const { data, error } = await supabaseClient
     .from('profiles')
@@ -495,40 +480,3 @@ function initAdminLoginPage() {
     }
   });
 }
-
- 
-// const { data, error } = await supabaseClient.auth.signUp({
-//   email,
-//   password
-// });
-
-// if (data.user) {
-//   await supabaseClient.from('profiles').insert([
-//     {
-//       id: data.user.id,
-//       email: data.user.email,
-//       name: name // agar tu naam le raha hai form se
-//     }
-//   ]);
-// }
-
-
-
-// document.querySelector("form").addEventListener("submit", async (e) => {
-//   e.preventDefault(); // 🔥 ye line missing hogi
-
-//   const email = document.getElementById("email").value;
-//   const password = document.getElementById("password").value;
-
-//   const { data, error } = await supabase.auth.signInWithPassword({
-//     email,
-//     password,
-//   });
-
-//   if (error) {
-//     alert(error.message);
-//   } else {
-//     alert("Login successful 🚀");
-//     window.location.href = "home.html"; // ya dashboard
-//   }
-// });

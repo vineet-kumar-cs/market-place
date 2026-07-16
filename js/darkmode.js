@@ -87,4 +87,3 @@ document.addEventListener('DOMContentLoaded', initDarkMode);
 if (document.readyState !== 'loading') {
   initDarkMode();
 }
-// >>>>>>> 2860d2281a18bc97a7d9f4a7991dbbe2a671dbfc
